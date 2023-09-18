@@ -1,6 +1,7 @@
 import random
 import math
 import time
+from flask import Flask
 
 
 class Rune:
@@ -147,7 +148,7 @@ def strong_centration(a,b):
     #vector from a to b
     distance = math.sqrt(x_distance**2 + y_distance**2)
     radius_difference = abs(a.radius - b.radius)
-    if radius_difference > 1 and radius_difference < 8 and distance < 5:
+    if radius_difference > 1 and radius_difference < 8 and distance < b.radius-3:
         delta = [x_distance, y_distance] + [x_distance/(distance+1), y_distance/(distance+1)]
         return delta
     else:
@@ -201,22 +202,27 @@ def simulate(runes, forces, iterations = 1000, precision = 0.01):
                 rune.x += comm_force[0] * precision
                 rune.y += comm_force[1] * precision
                 rune.bounds()
-        if i % int(iterations/10) == 0:
-            print(render(runes))
-            time.sleep(0.2)
 
-
-if __name__ == "__main__":
+def predefined():
     runes = []
     for _ in range(5):
         if random.random() < 0.5:
-            rune = Circle(random.randint(-15,15),random.randint(-15,15),random.randint(2,8))
+            rune = Circle(random.randint(-15,15),random.randint(-15,15),random.randint(3,18))
             runes.append(rune)
         else:
-            rune = Circle(random.randint(-15,15),random.randint(-15,15),random.randint(2,8), fill = ".")
+            rune = Circle(random.randint(-15,15),random.randint(-15,15),random.randint(5,10), fill = ".")
             runes.append(rune)
-    rune = StarredCircle(random.randint(-15,15),random.randint(-15,15),random.randint(8,14),inverted = random.random() < 0.5)
+    rune = StarredCircle(random.randint(-15,15),random.randint(-15,15),random.randint(10,14),inverted = random.random() < 0.5)
     runes.append(rune)
 
-    print(render(runes))
-    simulate(runes, [edge_attraction, strong_centration], iterations = 10000, precision = 0.01)
+    simulate(runes, [edge_attraction, strong_centration], iterations = 10000, precision = 0.1)
+    return render(runes)
+
+app = Flask(__name__)
+@app.route("/circle")
+def circle():
+    return predefined()
+
+if __name__ == "__main__":
+    from waitress import serve
+    serve(app, host="127.0.0.1", port=8080)
