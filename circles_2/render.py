@@ -155,7 +155,6 @@ class Line(Renderable):
         self.mat = mat
 
     def render(self, scene):
-
         vp = scene.viewport
         pb = scene.pixel_buffer
 
@@ -186,5 +185,62 @@ class Line(Renderable):
                 y1 += sy
 
 
+class Triangle(Renderable):
 
+    def __init__(self, x1, y1, x2, y2, x3, y3, edge_mat, fill_mat = None):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.x3 = x3
+        self.y3 = y3
+        self.edge_mat = edge_mat
+        self.fill_mat = fill_mat
+
+    def render(self, scene):
+        # transform the triangle's endpoints from world coordinates to viewport coordinates then to pixel buffer coordinates
+        vp = scene.viewport
+        pb = scene.pixel_buffer
+
+        x1, y1 = pb.viewport_to_buffer(*vp.world_to_viewport(self.x1, self.y1))
+        x2, y2 = pb.viewport_to_buffer(*vp.world_to_viewport(self.x2, self.y2))
+        x3, y3 = pb.viewport_to_buffer(*vp.world_to_viewport(self.x3, self.y3))
+
+        # test if the triangle is completely outside the pixel buffer
+        if x1 < 0 and x2 < 0 and x3 < 0 or x1 >= pb.width and x2 >= pb.width and x3 >= pb.width or y1 < 0 and y2 < 0 and y3 < 0 or y1 >= pb.height and y2 >= pb.height and y3 >= pb.height:
+            return False
+
+        # use the baricentric algorithm to draw the triangle
+        # https://en.wikipedia.org/wiki/Barycentric_coordinate_system
+
+        # compute the bounding box of the triangle
+        x_min = min(x1, x2, x3)
+        x_max = max(x1, x2, x3)
+        y_min = min(y1, y2, y3)
+        y_max = max(y1, y2, y3)
+
+        # subfunction to test if a point is inside the triangle
+        def inside(x, y):
+            # compute the barycentric coordinates of the point
+            alpha = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3))
+            beta = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3))
+            gamma = 1 - alpha - beta
+            # test if the point is inside the triangle
+            return alpha >= 0 and beta >= 0 and gamma >= 0
+
+        print("rendering triangle")
+
+        # draw the edges of the triangle as lines (using world coordinates)
+        Line(self.x1, self.y1, self.x2, self.y2, self.edge_mat).render(scene)
+        Line(self.x2, self.y2, self.x3, self.y3, self.edge_mat).render(scene)
+        Line(self.x3, self.y3, self.x1, self.y1, self.edge_mat).render(scene)
+
+        # fill the triangle if a fill material was provided
+        if self.fill_mat is not None:
+            for x in range(x_min, x_max):
+                for y in range(y_min, y_max):
+                    if inside(x, y):
+                        print("painting pixel")
+                        pb.paint_pixel(x, y, self.fill_mat)
+    
 
