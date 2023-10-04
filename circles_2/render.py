@@ -155,7 +155,6 @@ class Line(Renderable):
         self.mat = mat
 
     def render(self, scene):
-        # draw a line into the pixel buffer using the non-Bresenham algorithm (the simple float algorithm)
 
         vp = scene.viewport
         pb = scene.pixel_buffer
@@ -168,50 +167,23 @@ class Line(Renderable):
         if x1 < 0 and x2 < 0 or x1 >= pb.width and x2 >= pb.width or y1 < 0 and y2 < 0 or y1 >= pb.height and y2 >= pb.height:
             return False
 
-        def low(x1, y1, x2, y2):
-            # draw a line with slope between -1 and 1
-            dx = x2 - x1
-            dy = y2 - y1
-            yi = 1
-            if dy < 0:
-                yi = -1
-                dy = -dy
-            D = 2 * dy - dx
-            y = y1
-            for x in range(x1, x2):
-                pb.paint_pixel(x, y, self.mat)
-                if D > 0:
-                    y += yi
-                    D -= 2 * dx
-                D += 2 * dy
+        dx = abs(x2 - x1)
+        sx = 1 if x1 < x2 else -1
+        dy = -abs(y2 - y1)
+        sy = 1 if y1 < y2 else -1
+        err = dx + dy
 
-        def high(x1, y1, x2, y2):
-            # draw a line with slope greater than 1 or less than -1
-            dx = x2 - x1
-            dy = y2 - y1
-            xi = 1
-            if dx < 0:
-                xi = -1
-                dx = -dx
-            D = 2 * dx - dy
-            x = x1
-            for y in range(y1, y2):
-                pb.paint_pixel(x, y, self.mat)
-                if D > 0:
-                    x += xi
-                    D -= 2 * dy
-                D += 2 * dx
-
-        if abs(y2 - y1) < abs(x2 - x1):
-            if x1 > x2:
-                low(x2, y2, x1, y1)
-            else:
-                low(x1, y1, x2, y2)
-        else:
-            if y1 > y2:
-                high(x2, y2, x1, y1)
-            else:
-                high(x1, y1, x2, y2)
+        while True:
+            pb.paint_pixel(x1, y1, self.mat)
+            if x1 == x2 and y1 == y2:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x1 += sx
+            if e2 <= dx:
+                err += dx
+                y1 += sy
 
 
 
