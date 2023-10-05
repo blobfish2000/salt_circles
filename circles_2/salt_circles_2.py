@@ -1,29 +1,52 @@
 import random
 from render import *
 import math
+import time
 
 edge_mats = Material.list_to_mat("0#$@",1)
 fill_mat = Material('.',0)
-fill2_mat = Material(' ',0.1)
+clear_mat = Material(' ',99,99)
 
-circle = Circle(0, 0, 10, edge_mats, fill_mat)
-circle2 = Circle(0, 0, 5, [], fill2_mat)
+#basic polygon rotation test
 
-objects = [circle, circle2] #[circle, circle2]
+ngon = 2
+rotation = 0
+grow = True
+speed = 0
+radius = 10
+while True:
+    #pentagon points
+    points = []
+    for i in range(ngon):
+        points.append((radius*math.cos(i*2*math.pi/ngon + rotation),radius*math.sin(i*2*math.pi/ngon + rotation)))
 
-#simple star
-radius = 9
-prev_x = 0
-prev_y = 10
-for i in range(1,6):
-    angle = i * math.pi * 4 / 5
-    x = radius * math.sin(angle)
-    y = radius * math.cos(angle)
-    objects.append(Line(prev_x, prev_y, x, y, edge_mats))
-    prev_x = x
-    prev_y = y
 
-scene = Scene(objects)
+    pentagon = Polygon(points,edge_mats,fill_mat)
 
-print(scene.render())
+    objects = [pentagon]
+
+    scene = Scene(objects)
+
+    print(scene.render())
+    
+    if grow:
+        radius += speed
+        speed += 0.1
+        if radius >= 20:
+            grow = False
+            speed = 0
+    else:
+        radius -= speed
+        speed += 0.1
+        if radius <= 3:
+            grow = True
+            speed = 0
+            ngon += 1
+            if ngon > 8:
+                ngon = 2
+
+    rotation += 0.1
+    if rotation >= 2*math.pi:
+        rotation = 0
+    time.sleep(0.1)
 

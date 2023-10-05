@@ -9,15 +9,15 @@ class PixelBuffer():
             background = Material(' ',-1)
         self.buffer = [[[background] for x in range(width)] for y in range(height)]
 
-    def paint_pixel(self, x, y, char):
+    def paint_pixel(self, x, y, mat):
         # adds a material to the pixel buffer at the given coordinates
         if x >= 0 and x < self.width and y >= 0 and y < self.height:
-            if type(char) is Material:
-                self.buffer[y][x].append(char)
-            elif type(char) is list:
-                self.buffer[y][x] += char
+            if type(mat) is Material:
+                self.buffer[y][x].append(mat)
+            elif type(mat) is list:
+                self.buffer[y][x] += mat
             else:
-                raise TypeError('char must be a Material or a list of Materials')
+                raise TypeError('mat must be a Material or a list of Materials')
 
     def viewport_to_buffer(self, x, y):
         # transforms a point in viewport coordinates (-1,1) to pixel buffer coordinates
@@ -113,7 +113,6 @@ class Circle(Renderable):
         x, y = pb.viewport_to_buffer(*vp.world_to_viewport(self.x, self.y))
         # transform the circle's radius from world coordinates to viewport coordinates
         radius = pb.viewport_to_buffer(*vp.world_to_viewport(self.radius, 0))[0] - pb.viewport_to_buffer(0, 0)[0]
-        print(x, y, radius)
         # test if the circle is completely outside the pixel buffer
         if x + radius < 0 or x - radius >= pb.width or y + radius < 0 or y - radius >= pb.height:
             return false
@@ -172,6 +171,7 @@ class Line(Renderable):
         sy = 1 if y1 < y2 else -1
         err = dx + dy
 
+        #modified bidirectional bresenham's line algorithm
         while True:
             pb.paint_pixel(x1, y1, self.mat)
             if x1 == x2 and y1 == y2:
@@ -222,13 +222,16 @@ class Triangle(Renderable):
         # subfunction to test if a point is inside the triangle
         def inside(x, y):
             # compute the barycentric coordinates of the point
-            alpha = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3))
-            beta = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3))
+            # but first test if the triangle is degenerate
+            area = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3)
+            if area == 0:
+                return False
+            alpha = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / area
+            beta = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / area
             gamma = 1 - alpha - beta
             # test if the point is inside the triangle
             return alpha >= 0 and beta >= 0 and gamma >= 0
 
-        print("rendering triangle")
 
         # draw the edges of the triangle as lines (using world coordinates)
         Line(self.x1, self.y1, self.x2, self.y2, self.edge_mat).render(scene)
@@ -240,7 +243,40 @@ class Triangle(Renderable):
             for x in range(x_min, x_max):
                 for y in range(y_min, y_max):
                     if inside(x, y):
-                        print("painting pixel")
                         pb.paint_pixel(x, y, self.fill_mat)
-    
+        return True
+
+class Polygon(Renderable):
+
+    def __init__(self, points, edge_mat, fill_mat = None):
+        self.points = points
+        self.edge_mat = edge_mat
+        self.fill_mat = fill_mat
+
+    def render(self, scene):
+
+        vp = scene.viewport
+        pb = scene.pixel_buffer
+
+        # transform the polygon's points from world coordinates to viewport coordinates then to pixel buffer coordinates
+        world_coords = self.points
+        points = [pb.viewport_to_buffer(*vp.world_to_viewport(x, y)) for x, y in self.points]
+
+        # test if the polygon is completely outside the pixel buffer
+        if all(x < 0 for x, y in points) or all(x >= pb.width for x, y in points) or all(y < 0 for x, y in points) or all(y >= pb.height for x, y in points):
+            return False
+
+        #break the polygon into triangles (using world coordinates)
+        triangles = []
+        for i in range(1, len(points) - 1):
+            triangles.append((world_coords[0], world_coords[i], world_coords[i + 1]))
+
+        # draw the edges of the polygon as lines (using world coordinates)
+        for i in range(len(points)):
+            Line(self.points[i][0], self.points[i][1], self.points[(i + 1) % len(points)][0], self.points[(i + 1) % len(points)][1], self.edge_mat).render(scene)
+
+        # fill the polygon if a fill material was provided
+        if self.fill_mat is not None:
+            for t in triangles:
+                Triangle(t[0][0], t[0][1], t[1][0], t[1][1], t[2][0], t[2][1], [], self.fill_mat).render(scene)
 
