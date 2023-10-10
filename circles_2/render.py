@@ -69,7 +69,7 @@ class Scene():
     # holds a list of objects to be rendered, the coordinate bounds of a viewport, and a pixel buffer
     # the viewport is a rectangle in the scene that will be rendered to the pixel buffer
 
-    def __init__(self, objects, viewport = None, pixel_buffer = None):
+    def __init__(self, objects = [], viewport = None, pixel_buffer = None):
         self.objects = objects
         if viewport is None:
             viewport = Viewport(-20, 20, -20, 20)
@@ -143,6 +143,7 @@ class Circle(Renderable):
                         yf = yp + y
                         pb.paint_pixel(xf, yf, self.fill_mat)
         return True
+
 
 class Line(Renderable):
 
