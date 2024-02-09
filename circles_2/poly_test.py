@@ -12,18 +12,19 @@ clear_mat = Material(' ',99,99)
 ngon = 2
 rotation = 0
 grow = True
-speed = 0
+speed = 0.5
 radius = 10
 while True:
-    #pentagon points
+    #gon points
     points = []
     for i in range(ngon):
         points.append((radius*math.cos(i*2*math.pi/ngon + rotation),radius*math.sin(i*2*math.pi/ngon + rotation)))
 
 
-    pentagon = Polygon(points,edge_mats,fill_mat)
+    gon = Polygon(points,edge_mats,fill_mat)
+    circle = Circle(0,0,radius, edge_mats)
 
-    objects = [pentagon]
+    objects = [gon,circle]
 
     scene = Scene(objects)
 
@@ -31,18 +32,14 @@ while True:
     
     if grow:
         radius += speed
-        speed += 0.1
-        if radius >= 20:
+        if radius >= 17:
             grow = False
-            speed = 0
     else:
         radius -= speed
-        speed += 0.1
         if radius <= 3:
             grow = True
-            speed = 0
             ngon += 1
-            if ngon > 8:
+            if ngon > 5:
                 ngon = 2
 
     rotation += 0.1

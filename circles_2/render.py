@@ -22,8 +22,8 @@ class PixelBuffer():
     def viewport_to_buffer(self, x, y):
         # transforms a point in viewport coordinates (-1,1) to pixel buffer coordinates
         # returns a tuple (x, y) of pixel buffer coordinates
-        x = int((x + 1) / 2 * self.width)
-        y = int((y + 1) / 2 * self.height)
+        x = round((x + 1) / 2 * self.width)
+        y = round((y + 1) / 2 * self.height)
         return (x, y)
 
     def render(self, seed = 0):
